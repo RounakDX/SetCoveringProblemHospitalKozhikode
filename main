@@ -1,0 +1,114 @@
+import time
+
+def bypassbranch(subset, i):#omit a branch 
+    for j in range(i-1, -1, -1):
+        if subset[j] == 0:
+            subset[j] = 1
+            return subset, j+1
+
+    return subset, 0
+
+def nextvertex(subset, i, e):
+    if i < e:
+        subset[i] = 0
+        return subset, i+1
+    else:
+        for j in range(e-1, -1, -1):
+            if subset[j] == 0:
+                subset[j] = 1
+                return subset, j+1
+                
+    return subset, 0
+
+def BB(area,sets,costs):
+    subset = [1 for x in range(len(sets))]#all sets in
+    subset[0] = 0
+    bestCost = sum(costs) #worst cost 
+    i = 1
+
+    while i > 0:
+
+        if i < len(sets):
+            cost, tSet = 0, set()# t for temporary
+            for k in range(i):
+                cost += subset[k]*costs[k]#if 1 adds the cost to total
+                if subset[k] == 1: tSet.update(set(sets[k]))#if 1 add the set to the cover
+
+            if cost > bestCost:#if the price is more than the current best, there is no reason to look into it further.
+                subset, i = bypassbranch(subset, i)
+                continue
+            for k in range(i, len(sets)): tSet.update(set(sets[k]))
+            if tSet != area:#That is to say, the set was required to finish the area at this point.
+                subset, i = bypassbranch(subset, i)
+            else:
+                subset, i = nextvertex(subset, i, len(sets))
+                
+        else:
+            cost, fSet = 0, set()# f for final
+            for k in range(i):
+                cost += subset[k]*costs[k]
+                if subset[k] == 1: fSet.update(set(sets[k]))
+
+            if cost < bestCost and fSet == area:
+                bestCost = cost
+                bestSubset = subset[:]
+            subset, i = nextvertex(subset, i , len(sets))
+
+    return bestCost, bestSubset
+
+def main(a,b,c,z=time.time()):
+    e = a
+    S = b 
+    C = c
+    F = set([x for x in range(1,e+1)])
+    X=(BB(F,S,C))
+    cost= X[0]
+    sets= X[1]
+    cover= []
+    for x in range(len(sets)):
+        if sets[x]==1:
+            cover.append(S[x])
+    print('covering sets: ',cover,'\n','total cost: ',cost,'$')
+    #print('time:',time.time()-z)
+    costtext = ' total cost: '+str(cost)+' $'
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import ListedColormap
+    import numpy as np
+
+
+    clist = np.random.rand(e-1,).tolist()
+    clist = [str(a) for a in clist]
+    clist.insert(0, '1.0')
+    # Define colormap
+
+    cmapmine = ListedColormap(tuple(clist), N=e)
+    ansDict = {}
+    cover = [[1, 3, 6, 7], [4, 6], [5, 8, 10], [2, 9]] 
+    for i in range(1,e+1):
+        for j in cover:
+            if i in j:
+                ansDict[i]=cover.index(j)+1
+    ans = list(ansDict.values())
+    # Plot matrix
+    plt.figure(figsize=(5,1))
+    im = plt.imshow([ans], cmap=cmapmine, vmin=-.5, vmax=len(clist)-0.5)
+    plt.xticks(range(len(ans)), ans, fontsize=12)
+    plt.xlabel(costtext,fontsize=14)
+    plt.gca().yaxis.set_visible(False)
+    plt.show()
+    
+import numpy as np
+import pandas as pd
+cost = pd.read_csv('./cost.csv', index_col="Facility")
+coverage = pd.read_csv('./coverage.csv', index_col="Location")
+S = []
+for s in coverage.values:
+    R=[]
+    for r in range(0,len(s)):
+        if s[r]>0:
+            R.append(r+1)
+    S.append(R)
+P = cost['Cost'].values.tolist()
+e = len(coverage.columns)
+main(e,S,P)
+
